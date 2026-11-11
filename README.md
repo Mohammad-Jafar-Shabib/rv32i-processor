@@ -2,6 +2,8 @@
 
 Team RISC-V · Fall 2026/2027 · Project weight: 20% of course grade
 
+**Team:** Mohammad Shabib · Raad Hammad
+
 Design, implementation (Verilog), and verification of a 32-bit RISC-V (RV32I
 base subset) processor, culminating in benchmark execution and performance
 analysis. See `docs/Phase1_Proposal.docx` for the architectural plan and
