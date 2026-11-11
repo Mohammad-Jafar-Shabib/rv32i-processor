@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RV32I ISA Specification</title>
+<style>
+  body { font-family: Calibri, "Carlito", sans-serif; font-size: 11pt; color: #111; line-height: 1.25; }
+  h1 { font-size: 16pt; margin: 0 0 2pt 0; }
+  h2 { font-size: 12.5pt; margin: 9pt 0 3pt 0; border-bottom: 1px solid #888; }
+  p  { margin: 2pt 0; }
+  ul { margin: 2pt 0 2pt 18pt; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 4pt 0; }
+  th, td { border: 1px solid #555; padding: 2pt 5pt; font-size: 9.5pt; vertical-align: top; text-align: left; }
+  th { background: #e8e8e8; }
+  td.c, th.c { text-align: center; }
+  code { font-family: Consolas, monospace; font-size: 9.5pt; }
+  .meta { font-size: 10pt; color: #444; margin: 0 0 6pt 0; }
+</style>
+</head>
+<body>
+
+<h1>RV32I Instruction Set Architecture Specification</h1>
+<p class="meta">Computer Architecture &amp; Organization (401331) &middot; Phase 1 Deliverable &middot; Team RISC-V &middot; Fall 2026/2027 &middot; v1.0 &middot; November 11, 2026</p>
+
+<h2>1. Overview</h2>
+<p>The processor implements the <b>RV32I base integer instruction set</b>: 32-bit fixed-width instructions, 32 general-purpose registers, byte-addressable <b>little-endian</b> memory. All loads require natural alignment (lw: 4-byte, lh: 2-byte); misaligned access is a programming error and traps in simulation. The M extension is not implemented; multiplication is synthesized in software (shift-and-add), which the Phase 4 benchmarks exercise deliberately.</p>
+
+<h2>2. Register File Specification</h2>
+<p>32 registers &times; 32 bits. <b>Dual-read, single-write</b> ports; writes are committed on the rising clock edge and are inhibited when the destination is x0 (x0 is hardwired to zero).</p>
+<table>
+  <tr><th class="c">Register</th><th class="c">ABI name</th><th>Use</th><th class="c">Saver</th><th class="c">Register</th><th class="c">ABI name</th><th>Use</th><th class="c">Saver</th></tr>
+  <tr><td class="c">x0</td><td class="c">zero</td><td>Hardwired constant 0</td><td class="c">&mdash;</td><td class="c">x16</td><td class="c">a6</td><td>Function arg / return</td><td class="c"> Caller</td></tr>
+  <tr><td class="c">x1</td><td class="c">ra</td><td>Return address</td><td class="c">Caller</td><td class="c">x17</td><td class="c">a7</td><td>Function arg / return</td><td class="c"> Caller</td></tr>
+  <tr><td class="c">x2</td><td class="c">sp</td><td>Stack pointer</td><td class="c">Callee</td><td class="c">x18</td><td class="c">s2</td><td>Saved register</td><td class="c">Callee</td></tr>
+  <tr><td class="c">x3</td><td class="c">gp</td><td>Global pointer</td><td class="c">&mdash;</td><td class="c">x19</td><td class="c">s3</td><td>Saved register</td><td class="c">Callee</td></tr>
+  <tr><td class="c">x4</td><td class="c">tp</td><td>Thread pointer</td><td class="c">&mdash;</td><td class="c">x20</td><td class="c">s4</td><td>Saved register</td><td class="c">Callee</td></tr>
+  <tr><td class="c">x5</td><td class="c">t0</td><td>Temporary</td><td class="c">Caller</td><td class="c">x21</td><td class="c">s5</td><td>Saved register</td><td class="c">Callee</td></tr>
+  <tr><td class="c">x6</td><td class="c">t1</td><td>Temporary</td><td class="c">Caller</td><td class="c">x22</td><td class="c">s6</td><td>Saved register</td><td class="c">Callee</td></tr>
+  <tr><td class="c">x7</td><td class="c">t2</td><td>Temporary</td><td class="c">Caller</td><td class="c">x23</td><td class="c">s7</td><td>Saved register</td><td class="c">Callee</td></tr>
+  <tr><td class="c">x8</td><td class="c">s0/fp</td><td>Saved / frame ptr</td><td class="c">Callee</td><td class="c">x24</td><td class="c">s8</td><td>Saved register</td><td class="c">Callee</td></tr>
+  <tr><td class="c">x9</td><td class="c">s1</td><td>Saved register</td><td class="c">Callee</td><td class="c">x25</td><td class="c">s9</td><td>Saved register</td><td class="c">Callee</td></tr>
+  <tr><td class="c">x10</td><td class="c">a0</td><td>Arg / return value</td><td class="c">Caller</td><td class="c">x26</td><td class="c">s10</td><td>Saved register</td><td class="c">Callee</td></tr>
+  <tr><td class="c">x11</td><td class="c">a1</td><td>Arg / return value</td><td class="c">Caller</td><td class="c">x27</td><td class="c">s11</td><td>Saved register</td><td class="c">Callee</td></tr>
+  <tr><td class="c">x12</td><td class="c">a2</td><td>Function argument</td><td class="c">Caller</td><td class="c">x28</td><td class="c">t3</td><td>Temporary</td><td class="c">Caller</td></tr>
+  <tr><td class="c">x13</td><td class="c">a3</td><td>Function argument</td><td class="c">Caller</td><td class="c">x29</td><td class="c">t4</td><td>Temporary</td><td class="c">Caller</td></tr>
+  <tr><td class="c">x14</td><td class="c">a4</td><td>Function argument</td><td class="c">Caller</td><td class="c">x30</td><td class="c">t5</td><td>Temporary</td><td class="c">Caller</td></tr>
+  <tr><td class="c">x15</td><td class="c">a5</td><td>Function argument</td><td class="c">Caller</td><td class="c">x31</td><td class="c">t6</td><td>Temporary</td><td class="c">Caller</td></tr>
+</table>
+
+<h2>3. Instruction Formats</h2>
+<p>Every instruction is 32 bits wide. Bit 31 is the MSB; opcode occupies bits [6:0]. Six formats cover the entire set.</p>
+<table>
+  <tr><th style="width:10%">Format</th><th class="c">bits [31:25]</th><th class="c">bits [24:20]</th><th class="c">bits [19:15]</th><th class="c">bits [14:12]</th><th class="c">bits [11:7]</th><th class="c">bits [6:0]</th></tr>
+  <tr><td>R</td><td class="c">funct7</td><td class="c">rs2</td><td class="c">rs1</td><td class="c">funct3</td><td class="c">rd</td><td class="c">opcode</td></tr>
+  <tr><td>I</td><td class="c" colspan="2">imm[11:0]</td><td class="c">rs1</td><td class="c">funct3</td><td class="c">rd</td><td class="c">opcode</td></tr>
+  <tr><td>S</td><td class="c">imm[11:5]</td><td class="c">rs2</td><td class="c">rs1</td><td class="c">funct3</td><td class="c">imm[4:0]</td><td class="c">opcode</td></tr>
+  <tr><td>B</td><td class="c">imm[12|10:5]</td><td class="c">rs2</td><td class="c">rs1</td><td class="c">funct3</td><td class="c">imm[4:1|11]</td><td class="c">opcode</td></tr>
+  <tr><td>U</td><td class="c" colspan="2">imm[31:12]</td><td class="c">&mdash;</td><td class="c">&mdash;</td><td class="c">rd</td><td class="c">opcode</td></tr>
+  <tr><td>J</td><td class="c" colspan="2">imm[20|10:1|11|19:12]</td><td class="c">&mdash;</td><td class="c">&mdash;</td><td class="c">rd</td><td class="c">opcode</td></tr>
+</table>
+<table>
+  <tr><th style="width:10%">Format</th><th>Immediate</th><th>Range / notes</th></tr>
+  <tr><td>I</td><td>imm[11:0], sign-extended</td><td>&minus;2048 .. +2047 (loads, JALR, OP-IMM)</td></tr>
+  <tr><td>S</td><td>imm[11:0] split imm[11:5]|imm[4:0], sign-extended</td><td>&minus;2048 .. +2047 (stores)</td></tr>
+  <tr><td>B</td><td>imm[12:1|11] reassembled, sign-extended, LSB = 0</td><td>&plusmn;4&nbsp;KiB (branch offsets are even)</td></tr>
+  <tr><td>U</td><td>imm[31:12] placed in bits [31:12], lower 12 bits zero</td><td>LUI/AUIPC page-granular constants</td></tr>
+  <tr><td>J</td><td>imm[20:1|11] reassembled, sign-extended, LSB = 0</td><td>&plusmn;1&nbsp;MiB (JAL offsets are even)</td></tr>
+</table>
+<p><b>Worked encoding example</b> — <code>addi x5, x6, 1</code>: imm=000000000001, rs1=00110, funct3=000, rd=00101, opcode=0010011 &rarr; <code>0000 0000 0001 0011 0000 0101 0001 0011</code> = <code>0x00130293</code>.</p>
+
+<h2>4. Complete Opcode Table (40 instructions)</h2>
+<table>
+  <tr><th>Instruction</th><th class="c">Type</th><th class="c">Opcode</th><th class="c">funct3</th><th class="c">funct7</th><th>Operation</th></tr>
+  <tr><td>ADD</td><td class="c">R</td><td class="c">0110011</td><td class="c">000</td><td class="c">0000000</td><td>rd = rs1 + rs2</td></tr>
+  <tr><td>SUB</td><td class="c">R</td><td class="c">0110011</td><td class="c">000</td><td class="c">0100000</td><td>rd = rs1 &minus; rs2</td></tr>
+  <tr><td>SLL</td><td class="c">R</td><td class="c">0110011</td><td class="c">001</td><td class="c">0000000</td><td>rd = rs1 &lt;&lt; (rs2[4:0])</td></tr>
+  <tr><td>SLT</td><td class="c">R</td><td class="c">0110011</td><td class="c">010</td><td class="c">&mdash;</td><td>rd = (rs1 &lt; rs2) signed</td></tr>
+  <tr><td>SLTU</td><td class="c">R</td><td class="c">0110011</td><td class="c">011</td><td class="c">&mdash;</td><td>rd = (rs1 &lt; rs2) unsigned</td></tr>
+  <tr><td>XOR</td><td class="c">R</td><td class="c">0110011</td><td class="c">100</td><td class="c">&mdash;</td><td>rd = rs1 ^ rs2</td></tr>
+  <tr><td>SRL</td><td class="c">R</td><td class="c">0110011</td><td class="c">101</td><td class="c">0000000</td><td>rd = rs1 &gt;&gt; (rs2[4:0]) logical</td></tr>
+  <tr><td>SRA</td><td class="c">R</td><td class="c">0110011</td><td class="c">101</td><td class="c">0100000</td><td>rd = rs1 &gt;&gt;&gt; (rs2[4:0]) arithmetic</td></tr>
+  <tr><td>OR</td><td class="c">R</td><td class="c">0110011</td><td class="c">110</td><td class="c">&mdash;</td><td>rd = rs1 | rs2</td></tr>
+  <tr><td>AND</td><td class="c">R</td><td class="c">0110011</td><td class="c">111</td><td class="c">&mdash;</td><td>rd = rs1 &amp; rs2</td></tr>
+  <tr><td>ADDI</td><td class="c">I</td><td class="c">0010011</td><td class="c">000</td><td class="c">&mdash;</td><td>rd = rs1 + sext(imm)</td></tr>
+  <tr><td>SLTI</td><td class="c">I</td><td class="c">0010011</td><td class="c">010</td><td class="c">&mdash;</td><td>rd = (rs1 &lt; sext(imm)) signed</td></tr>
+  <tr><td>SLTIU</td><td class="c">I</td><td class="c">0010011</td><td class="c">011</td><td class="c">&mdash;</td><td>rd = (rs1 &lt; sext(imm)) unsigned</td></tr>
+  <tr><td>XORI</td><td class="c">I</td><td class="c">0010011</td><td class="c">100</td><td class="c">&mdash;</td><td>rd = rs1 ^ sext(imm)</td></tr>
+  <tr><td>ORI</td><td class="c">I</td><td class="c">0010011</td><td class="c">110</td><td class="c">&mdash;</td><td>rd = rs1 | sext(imm)</td></tr>
+  <tr><td>ANDI</td><td class="c">I</td><td class="c">0010011</td><td class="c">111</td><td class="c">&mdash;</td><td>rd = rs1 &amp; sext(imm)</td></tr>
+  <tr><td>SLLI</td><td class="c">I</td><td class="c">0010011</td><td class="c">001</td><td class="c">0000000</td><td>rd = rs1 &lt;&lt; shamt</td></tr>
+  <tr><td>SRLI</td><td class="c">I</td><td class="c">0010011</td><td class="c">101</td><td class="c">0000000</td><td>rd = rs1 &gt;&gt; shamt logical</td></tr>
+  <tr><td>SRAI</td><td class="c">I</td><td class="c">0010011</td><td class="c">101</td><td class="c">0100000</td><td>rd = rs1 &gt;&gt;&gt; shamt arithmetic</td></tr>
+  <tr><td>LW</td><td class="c">I</td><td class="c">0000011</td><td class="c">010</td><td class="c">&mdash;</td><td>rd = sign-ext(M[rs1+imm] , 32b)</td></tr>
+  <tr><td>LH</td><td class="c">I</td><td class="c">0000011</td><td class="c">001</td><td class="c">&mdash;</td><td>rd = sign-ext(M[rs1+imm] , 16b)</td></tr>
+  <tr><td>LHU</td><td class="c">I</td><td class="c">0000011</td><td class="c">101</td><td class="c">&mdash;</td><td>rd = zero-ext(M[rs1+imm] , 16b)</td></tr>
+  <tr><td>LB</td><td class="c">I</td><td class="c">0000011</td><td class="c">000</td><td class="c">&mdash;</td><td>rd = sign-ext(M[rs1+imm] , 8b)</td></tr>
+  <tr><td>LBU</td><td class="c">I</td><td class="c">0000011</td><td class="c">100</td><td class="c">&mdash;</td><td>rd = zero-ext(M[rs1+imm] , 8b)</td></tr>
+  <tr><td>SW</td><td class="c">S</td><td class="c">0100011</td><td class="c">010</td><td class="c">&mdash;</td><td>M[rs1+imm] = rs2[31:0]</td></tr>
+  <tr><td>SH</td><td class="c">S</td><td class="c">0100011</td><td class="c">001</td><td class="c">&mdash;</td><td>M[rs1+imm] = rs2[15:0]</td></tr>
+  <tr><td>SB</td><td class="c">S</td><td class="c">0100011</td><td class="c">000</td><td class="c">&mdash;</td><td>M[rs1+imm] = rs2[7:0]</td></tr>
+  <tr><td>BEQ</td><td class="c">B</td><td class="c">1100011</td><td class="c">000</td><td class="c">&mdash;</td><td>if (rs1 == rs2) PC += sext(imm)</td></tr>
+  <tr><td>BNE</td><td class="c">B</td><td class="c">1100011</td><td class="c">001</td><td class="c">&mdash;</td><td>if (rs1 != rs2) PC += sext(imm)</td></tr>
+  <tr><td>BLT</td><td class="c">B</td><td class="c">1100011</td><td class="c">100</td><td class="c">&mdash;</td><td>if (rs1 &lt; rs2, signed) PC += sext(imm)</td></tr>
+  <tr><td>BGE</td><td class="c">B</td><td class="c">1100011</td><td class="c">101</td><td class="c">&mdash;</td><td>if (rs1 &ge; rs2, signed) PC += sext(imm)</td></tr>
+  <tr><td>BLTU</td><td class="c">B</td><td class="c">1100011</td><td class="c">110</td><td class="c">&mdash;</td><td>if (rs1 &lt; rs2, unsigned) PC += sext(imm)</td></tr>
+  <tr><td>BGEU</td><td class="c">B</td><td class="c">1100011</td><td class="c">111</td><td class="c">&mdash;</td><td>if (rs1 &ge; rs2, unsigned) PC += sext(imm)</td></tr>
+  <tr><td>LUI</td><td class="c">U</td><td class="c">0110111</td><td class="c">&mdash;</td><td class="c">&mdash;</td><td>rd = sext(imm[31:12]) &lt;&lt; 12</td></tr>
+  <tr><td>AUIPC</td><td class="c">U</td><td class="c">0010111</td><td class="c">&mdash;</td><td class="c">&mdash;</td><td>rd = PC + sext(imm[31:12]) &lt;&lt; 12</td></tr>
+  <tr><td>JAL</td><td class="c">J</td><td class="c">1101111</td><td class="c">&mdash;</td><td class="c">&mdash;</td><td>rd = PC+4; PC += sext(imm)</td></tr>
+  <tr><td>JALR</td><td class="c">I</td><td class="c">1100111</td><td class="c">000</td><td class="c">&mdash;</td><td>rd = PC+4; PC = (rs1 + sext(imm)) &amp; ~1</td></tr>
+  <tr><td>FENCE</td><td class="c">I</td><td class="c">0001111</td><td class="c">000</td><td class="c">&mdash;</td><td>Memory ordering hint — no-op in this design</td></tr>
+  <tr><td>ECALL</td><td class="c">I</td><td class="c">1110011</td><td class="c">000</td><td class="c">0000000</td><td>Environment call — maps to simulation halt/syscall hook</td></tr>
+  <tr><td>EBREAK</td><td class="c">I</td><td class="c">1110011</td><td class="c">000</td><td class="c">0000001</td><td>Breakpoint — maps to simulation stop</td></tr>
+</table>
+<p>Branches and JAL add their sign-extended immediate to the instruction address (PC), with bit&nbsp;0 forced to zero. JALR clears bit&nbsp;0 of the target after addition.</p>
+
+<h2>5. Implementation Subset Priorities</h2>
+<table>
+  <tr><th style="width:18%">Phase</th><th>Instruction coverage</th></tr>
+  <tr><td>Phase 2</td><td>Core arithmetic/logic/shift (ADD, SUB, AND, OR, XOR, SLL, SRL, SRA, SLT, SLTU + immediate forms), LW, SW, BEQ, BNE, JAL — enough for first correct programs vs. RARS.</td></tr>
+  <tr><td>Phase 3</td><td>Full RV32I table above running in the 5-stage pipeline with forwarding and hazard stalls; direct-mapped cache in the load/store path.</td></tr>
+  <tr><td>Phase 4</td><td>Full subset under benchmark load (sort, Fibonacci, matrix mul); ECALL/EBREAK terminate simulation and emit results for the RARS differential check.</td></tr>
+</table>
+
+<h2>6. Memory Model</h2>
+<p>Byte-addressable, little-endian, unified address space with separate instruction and data RAM interfaces in Phase 2 (simplified fetch path) merged behind the Phase 3 cache. RV32I loads/stores use natural alignment; RARS assembles data sections with automatic alignment, and the benchmark suite contains no misaligned accesses.</p>
+
+<h2>7. ALU Functional Specification</h2>
+<p>The ALU is shared by the EX stage of every format class. A 4-bit control word selects the operation; <b>Zero</b> and <b>Overflow/Sign</b> flags are produced every cycle. SLT/SLTU/branches derive their result from the subtract path, so no separate comparator is needed.</p>
+<table>
+  <tr><th class="c">ALU control</th><th>Operation</th><th>Flag behavior</th></tr>
+  <tr><td class="c">0000</td><td>ADD (A + B)</td><td>Overflow flag set on signed carry-out &ne; carry-in</td></tr>
+  <tr><td class="c">0001</td><td>SUB (A &minus; B)</td><td>Zero flag = (A == B); used by BEQ/BNE</td></tr>
+  <tr><td class="c">0010</td><td>SLL (A &lt;&lt; B[4:0])</td><td>&mdash;</td></tr>
+  <tr><td class="c">0011</td><td>SLT (signed less)</td><td>Result bit 0 drives BLT/BGE</td></tr>
+  <tr><td class="c">0100</td><td>SLTU (unsigned less)</td><td>Result bit 0 drives BLTU/BGEU</td></tr>
+  <tr><td class="c">0101</td><td>XOR</td><td>&mdash;</td></tr>
+  <tr><td class="c">0110</td><td>SRL (logical right)</td><td>&mdash;</td></tr>
+  <tr><td class="c">0111</td><td>SRA (arithmetic right)</td><td>&mdash;</td></tr>
+  <tr><td class="c">1000</td><td>OR</td><td>&mdash;</td></tr>
+  <tr><td class="c">1001</td><td>AND</td><td>&mdash;</td></tr>
+  <tr><td class="c">1111</td><td>Pass-through B (store data / immediates)</td><td>&mdash;</td></tr>
+</table>
+<p>Decode maps each instruction in &sect;4 to the control word above; the mapping table is maintained in the Verilog <code>control.v</code> from Phase 2 onward and kept consistent with this specification during reviews.</p>
+
+</body>
+</html>

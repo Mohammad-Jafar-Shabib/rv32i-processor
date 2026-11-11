@@ -1,0 +1,15 @@
+# Simulation build artifacts
+*.vvp
+*.vcd
+*.out
+tb_phase1
+work/
+
+# Editor / OS noise
+.~lock*
+*~
+.vscode/
+.idea/
+
+# Toolchain downloads (RARS jar is not committed)
+rars*.jar

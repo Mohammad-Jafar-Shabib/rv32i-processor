@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phase 1 Architectural Proposal</title>
+<style>
+  body { font-family: Calibri, "Carlito", sans-serif; font-size: 11pt; color: #111; line-height: 1.25; }
+  h1 { font-size: 16pt; margin: 0 0 2pt 0; }
+  h2 { font-size: 12.5pt; margin: 8pt 0 3pt 0; border-bottom: 1px solid #888; }
+  h3 { font-size: 11pt; margin: 6pt 0 2pt 0; }
+  p  { margin: 2pt 0; }
+  ul { margin: 2pt 0 2pt 18pt; padding: 0; }
+  li { margin: 1pt 0; }
+  table { border-collapse: collapse; width: 100%; margin: 4pt 0; }
+  th, td { border: 1px solid #555; padding: 2pt 5pt; font-size: 9.5pt; vertical-align: top; text-align: left; }
+  th { background: #e8e8e8; }
+  .meta { font-size: 10pt; color: #444; margin: 0 0 6pt 0; }
+</style>
+</head>
+<body>
+
+<h1>A 32-bit RISC-V Processor for Embedded Benchmark Workloads</h1>
+<p class="meta">Computer Architecture &amp; Organization (401331) &middot; Phase 1 Architectural Proposal &middot; Fall 2026/2027 &middot; Team RISC-V &middot; November 11, 2026</p>
+
+<h2>1. Problem Statement</h2>
+<p>Cost-sensitive embedded systems need a small, deterministic, general-purpose core whose behavior can be fully understood from gate level to software. RISC-V is an open, royalty-free ISA that makes such a core feasible as a course-scale project. Our objective is to <b>design, implement in Verilog, and verify a 32-bit RISC-V (RV32I base subset) processor</b> that, by Phase 4, executes complete assembly benchmark programs (sorting, Fibonacci, matrix multiplication) and is characterized by measured <b>CPI, execution time, clock frequency, and cache miss rate</b>, documented in an IEEE-style report and defended orally in Week 14. The dominant risk is under-scoping; therefore the architecture is fixed now and later phases only extend a working design.</p>
+
+<h2>2. Objectives</h2>
+<ul>
+  <li>Specify a complete RV32I subset: instruction encodings, opcode map, and register file (Phase 1, this deliverable).</li>
+  <li>Build a correct single-cycle datapath — ALU, register file, control unit, instruction/data RAM — verified by self-checking testbenches (Phase 2).</li>
+  <li>Extend to a five-stage pipeline with hazard detection and forwarding, plus a direct-mapped cache with hit/miss logic (Phase 3).</li>
+  <li>Execute the benchmark suite end-to-end and produce quantitative performance analysis (Phase 4).</li>
+  <li>Maintain a public GitHub repository with continuous version history and a 3–5 minute demo video (all phases).</li>
+</ul>
+
+<h2>3. Scope</h2>
+<table>
+  <tr><th style="width:50%">In scope</th><th>Out of scope</th></tr>
+  <tr><td>RV32I integer subset (~40 instructions) exactly as specified in the accompanying ISA Specification; 32&times;32-bit register file, x0 hardwired to zero; byte-addressable little-endian memory.</td>
+      <td>Standard extensions M/F/A/D/C (multiplication is synthesized in software by shift-and-add, which the benchmarks exercise explicitly).</td></tr>
+  <tr><td>Single-cycle baseline in Phase 2 evolving into a 5-stage pipeline (IF&ndash;ID&ndash;EX&ndash;MEM&ndash;WB) in Phase 3, with full data forwarding, load-use stall, and predict-not-taken branch policy.</td>
+      <td>CSRs, interrupts/exceptions, MMU and virtual memory, multi-core, superscalar or out-of-order techniques.</td></tr>
+  <tr><td>Phase 3 memory hierarchy: unified memory fronted by a 1&nbsp;KiB direct-mapped cache (32 lines &times; 32&nbsp;B blocks), hit/miss logic, miss-penalty modeling in simulation.</td>
+      <td>FPGA synthesis and physical implementation; set-associative caches (kept as documented trade-off alternatives).</td></tr>
+</table>
+
+<h2>4. Design Goals</h2>
+<table>
+  <tr><th style="width:28%">Attribute</th><th>Target</th></tr>
+  <tr><td>ISA</td><td>RV32I base integer subset; encodings per ISA Specification document.</td></tr>
+  <tr><td>Register file</td><td>32 &times; 32-bit, dual-read / single-write, x0 constant zero.</td></tr>
+  <tr><td>Implementation path</td><td>Single-cycle (CPI = 1.0) as the correctness baseline &rarr; 5-stage pipeline in Phase 3.</td></tr>
+  <tr><td>Target CPI</td><td>1.0 single-cycle; &le;&nbsp;1.2 pipelined (ideal 1.0 + load-use and taken-branch penalties, quantified in Phase 3).</td></tr>
+  <tr><td>ALU capabilities</td><td>10 operations: ADD, SUB, AND, OR, XOR, SLL, SRL, SRA, SLT, SLTU; flags <b>Zero</b> and <b>Overflow/Sign</b> exposed for branch and comparison logic; 4-bit ALU-control encoding (see ISA Spec &sect;7).</td></tr>
+  <tr><td>Branch handling</td><td>Resolved in EX with operand forwarding; predict-not-taken, fixed 2-cycle penalty on taken branches/jumps.</td></tr>
+  <tr><td>Memory hierarchy</td><td>Separate I/D RAM in Phase 2; unified memory + 1&nbsp;KiB direct-mapped cache in Phase 3.</td></tr>
+  <tr><td>Verification</td><td>Self-checking testbench per module and per phase; full-program output diffed against the RARS golden reference.</td></tr>
+</table>
+
+<h2>5. Methodology &amp; Phase Schedule</h2>
+<table>
+  <tr><th>Phase (due)</th><th>Deliverables</th><th>Success criterion</th></tr>
+  <tr><td>1 — Spec &amp; setup (Wk 4)</td><td>This proposal, ISA Specification, initialized Verilog toolchain + testbench, Git repository.</td><td>Testbench passes; ISA table complete and internally consistent.</td></tr>
+  <tr><td>2 — Datapath (Wk 7)</td><td>ALU, register file, control unit, single-cycle datapath; progress report with waveforms.</td><td>Basic RV32I programs execute correctly vs. RARS.</td></tr>
+  <tr><td>3 — Cache &amp; pipeline (Wk 10)</td><td>Direct-mapped cache, 5-stage pipeline, hazard/forwarding unit; report with timing diagrams and hit/miss ratios.</td><td>CPI &le; 1.2 on benchmark kernels; hazard logs documented.</td></tr>
+  <tr><td>4 — Benchmarks &amp; defense (Wk 13)</td><td>Benchmark runs (sort, Fibonacci, matrix mul), CPI/miss-rate analysis, IEEE report, demo video.</td><td>End-to-end correctness vs. RARS; complete performance table.</td></tr>
+</table>
+
+<h2>6. Toolchain &amp; Verification Strategy</h2>
+<p><b>HDL/simulation:</b> Verilog (IEEE&nbsp;1364-2005) simulated with Icarus Verilog (<i>iverilog</i>/<i>vvp</i>), waveforms via GTKWave when needed. <b>Golden reference:</b> RARS (RISC-V Assembler and Runtime Simulator) runs every test program; processor simulation output must match RARS output exactly. <b>Version control:</b> Git/GitHub with one commit minimum per work item. <b>Verification approach:</b> every module gets a self-checking testbench asserting expected outputs (already established in Phase 1 — see <code>sim/tb_phase1.v</code>), escalating to full-program differential testing against RARS from Phase 2 onward.</p>
+
+<h2>7. Expected Results</h2>
+<p>A working RV32I processor executing the full benchmark suite with correctness proven by differential testing; measured CPI &le;&nbsp;1.2 for the pipelined configuration; cache hit/miss ratios reported per benchmark; a clean 6–8 page IEEE report and a reproducible public repository. This positions the team for full marks on Processor Implementation (up to 7/20) and Documentation (up to 9/20) criteria.</p>
+
+</body>
+</html>
